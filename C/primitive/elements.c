@@ -182,17 +182,18 @@ static void copyInput(sigInput* result, const rawInput* input) {
   copyRawAmt(&result->txo.amt, input->txo.value);
   if (input->issuance.amount || input->issuance.inflationKeys) {
     sha256_toMidstate(result->issuance.blindingNonce.s, input->issuance.blindingNonce);
+    copyRawAmt(&result->issuance.assetAmt, input->issuance.amount);
+    hashBuffer(&result->issuance.assetRangeProofHash, is_confidential(result->issuance.assetAmt.prefix) ? &input->issuance.amountRangePrf : &(rawBuffer){0});
     if (0 == result->issuance.blindingNonce.s[0] && 0 == result->issuance.blindingNonce.s[1] &&
         0 == result->issuance.blindingNonce.s[2] && 0 == result->issuance.blindingNonce.s[3] &&
         0 == result->issuance.blindingNonce.s[4] && 0 == result->issuance.blindingNonce.s[5] &&
         0 == result->issuance.blindingNonce.s[6] && 0 == result->issuance.blindingNonce.s[7]) {
       sha256_toMidstate(result->issuance.contractHash.s, input->issuance.assetEntropy);
-      copyRawAmt(&result->issuance.assetAmt, input->issuance.amount);
       copyRawAmt(&result->issuance.tokenAmt, input->issuance.inflationKeys);
+      hashBuffer(&result->issuance.tokenRangeProofHash, is_confidential(result->issuance.tokenAmt.prefix) ? &input->issuance.inflationKeysRangePrf : &(rawBuffer){0});
       result->issuance.type = NEW_ISSUANCE;
     } else {
       sha256_toMidstate(result->issuance.entropy.s, input->issuance.assetEntropy);
-      copyRawAmt(&result->issuance.assetAmt, input->issuance.amount);
       result->issuance.type = REISSUANCE;
     }
   }
@@ -332,6 +333,8 @@ static void copyOutput(sigOutput* result, opcode** allocation, size_t* allocatio
   copyRawConfidential(&result->nonce, output->nonce);
   parseNullData(&result->pnd, allocation, allocationLen, &output->scriptPubKey);
   result->isNullData = NULL != result->pnd.op;
+  hashBuffer(&result->surjectionProofHash, is_confidential(result->asset.prefix) ? &output->surjectionProof : &(rawBuffer){0});
+  hashBuffer(&result->rangeProofHash, is_confidential(result->amt.prefix) ? &output->rangeProof : &(rawBuffer){0});
 }
 
 /* Allocate and initialize a 'transaction' from a 'rawOuput', copying or hashing the data as needed.

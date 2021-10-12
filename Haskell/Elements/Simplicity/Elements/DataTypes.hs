@@ -5,7 +5,7 @@ module Simplicity.Elements.DataTypes
   , Script
   , TxNullDatumF(..), TxNullDatum, TxNullData, txNullData
   , Lock, Value
-  , Confidential(..)
+  , Confidential(..), prf_
   , AssetWith(..), AssetWithWitness, Asset, asset, clearAssetPrf
   , AmountWith(..), AmountWithWitness, Amount, amount, clearAmountPrf
   , TokenAmountWith, TokenAmountWithWitness, TokenAmount

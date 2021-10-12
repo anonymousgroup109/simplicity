@@ -126,7 +126,7 @@ static void issuanceAssetAmt(frameItem* dst, const assetIssuance* issuance) {
   }
 }
 
-/* Write an optional confidential issued/reissued asset amount from an 'assetIssuance' to the 'dst' frame, advancing the cursor.
+/* Write an optional confidential token amount from an 'assetIssuance' to the 'dst' frame, advancing the cursor.
  *
  * Precondition: '*dst' is a valid write frame for 259 more cells;
  *               NULL != issuance;
@@ -136,6 +136,32 @@ static void issuanceTokenAmt(frameItem* dst, const assetIssuance* issuance) {
     amt(dst, &issuance->tokenAmt);
   } else {
     skipBits(dst, 258);
+  }
+}
+
+/* Write an optional confidential asset rangeproof from an 'assetIssuance' to the 'dst' frame, advancing the cursor 257 cells.
+ *
+ * Precondition: '*dst' is a valid write frame for 257 more cells;
+ *               NULL != issuance;
+ */
+static void issuanceAssetProof(frameItem* dst, const assetIssuance* issuance) {
+  if (writeBit(dst, NO_ISSUANCE != issuance->type && is_confidential(issuance->assetAmt.prefix))) {
+    writeHash(dst, &issuance->assetRangeProofHash);
+  } else {
+    skipBits(dst, 256);
+  }
+}
+
+/* Write an optional confidential token rangeproof from an 'assetIssuance' to the 'dst' frame, advancing the cursor 257 cells.
+ *
+ * Precondition: '*dst' is a valid write frame for 257 more cells;
+ *               NULL != issuance;
+ */
+static void issuanceTokenProof(frameItem* dst, const assetIssuance* issuance) {
+  if (writeBit(dst, NEW_ISSUANCE == issuance->type && is_confidential(issuance->tokenAmt.prefix))) {
+    writeHash(dst, &issuance->tokenRangeProofHash);
+  } else {
+    skipBits(dst, 256);
   }
 }
 
@@ -274,6 +300,28 @@ bool input_issuance_token_amt(frameItem* dst, frameItem src, const txEnv* env) {
   return true;
 }
 
+/* input_issuance_asset_proof : TWO^32 |- S (S TWO^256) */
+bool input_issuance_asset_proof(frameItem* dst, frameItem src, const txEnv* env) {
+  uint_fast32_t i = read32(&src);
+  if (writeBit(dst, i < env->tx->numInputs)) {
+    issuanceAssetProof(dst, &env->tx->input[i].issuance);
+  } else {
+    skipBits(dst, 257);
+  }
+  return true;
+}
+
+/* input_issuance_token_proof : TWO^32 |- S (S TWO^256) */
+bool input_issuance_token_proof(frameItem* dst, frameItem src, const txEnv* env) {
+  uint_fast32_t i = read32(&src);
+  if (writeBit(dst, i < env->tx->numInputs)) {
+    issuanceTokenProof(dst, &env->tx->input[i].issuance);
+  } else {
+    skipBits(dst, 257);
+  }
+  return true;
+}
+
 /* output_asset : TWO^32 |- S (Conf TWO^256) */
 bool output_asset(frameItem* dst, frameItem src, const txEnv* env) {
   uint_fast32_t i = read32(&src);
@@ -369,6 +417,28 @@ bool output_null_datum(frameItem* dst, frameItem src, const txEnv* env) {
     }
   } else {
     skipBits(dst, 1 + 1 + 2 + 256);
+  }
+  return true;
+}
+
+/* output_surjection_proof : TWO^32 |- S TWO^256 */
+bool output_surjection_proof(frameItem* dst, frameItem src, const txEnv* env) {
+  uint_fast32_t i = read32(&src);
+  if (writeBit(dst, i < env->tx->numOutputs)) {
+    writeHash(dst, &env->tx->output[i].surjectionProofHash);
+  } else {
+    skipBits(dst, 256);
+  }
+  return true;
+}
+
+/* output_range_proof : TWO^32 |- S TWO^256 */
+bool output_range_proof(frameItem* dst, frameItem src, const txEnv* env) {
+  uint_fast32_t i = read32(&src);
+  if (writeBit(dst, i < env->tx->numOutputs)) {
+    writeHash(dst, &env->tx->output[i].rangeProofHash);
+  } else {
+    skipBits(dst, 256);
   }
   return true;
 }
@@ -471,6 +541,22 @@ bool current_issuance_token_amt(frameItem* dst, frameItem src, const txEnv* env)
   (void) src; // src is unused;
   if (env->tx->numInputs <= env->ix) return false;
   issuanceTokenAmt(dst, &env->tx->input[env->ix].issuance);
+  return true;
+}
+
+/* current_issuance_asset_proof : ONE |- S TWO^256 */
+bool current_issuance_asset_proof(frameItem* dst, frameItem src, const txEnv* env) {
+  (void) src; // src is unused;
+  if (env->tx->numInputs <= env->ix) return false;
+  issuanceAssetProof(dst, &env->tx->input[env->ix].issuance);
+  return true;
+}
+
+/* current_issuance_token_proof : ONE |- S TWO^256 */
+bool current_issuance_token_proof(frameItem* dst, frameItem src, const txEnv* env) {
+  (void) src; // src is unused;
+  if (env->tx->numInputs <= env->ix) return false;
+  issuanceTokenProof(dst, &env->tx->input[env->ix].issuance);
   return true;
 }
 

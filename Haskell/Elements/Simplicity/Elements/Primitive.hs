@@ -3,7 +3,7 @@
 module Simplicity.Elements.Primitive
   ( Prim(..), primPrefix, primName
   , getPrimBit, putPrimBit
-  , PrimEnv, primEnv
+  , PrimEnv(..), primEnv
   , primSem
   -- * Unimplemented
   , getPrimByte, putPrimByte

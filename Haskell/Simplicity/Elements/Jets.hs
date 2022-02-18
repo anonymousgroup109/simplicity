@@ -6,8 +6,10 @@ module Simplicity.Elements.Jets
   , getTermStopCode, putTermStopCode
   , getTermLengthCode, putTermLengthCode
   , fastEval
+  , jetMap
   -- * Re-exports
   , WrappedSimplicity, unwrap
+  , Simplicity.Elements.JetType.specification, Simplicity.Elements.JetType.implementation
   ) where
 
 import Prelude hiding (fail, drop, take)
